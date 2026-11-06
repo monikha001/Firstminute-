@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { getIncident, updateIncident } from '../services/firestore.js';
 import { INCIDENT_STATUSES } from '../services/incident.js';
+import AppShell from '../components/AppShell.jsx';
 
 export default function ResponderIncident() {
   const { incidentId } = useParams();
@@ -79,36 +80,21 @@ export default function ResponderIncident() {
   }
 
   function formatStatus(status) {
-    return status
-      ?.replaceAll('_', ' ')
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    return (
+      status
+        ?.replaceAll('_', ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase()) ||
+      'Unknown'
+    );
   }
 
   function formatIncidentType(type) {
-    return type
-      ?.replaceAll('-', ' ')
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  function getPriorityStyles(priority) {
-    if (priority === 'high') {
-      return {
-        background: '#dc2626',
-        color: '#ffffff',
-      };
-    }
-
-    if (priority === 'medium') {
-      return {
-        background: '#f59e0b',
-        color: '#ffffff',
-      };
-    }
-
-    return {
-      background: '#16a34a',
-      color: '#ffffff',
-    };
+    return (
+      type
+        ?.replaceAll('-', ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase()) ||
+      'Unknown incident'
+    );
   }
 
   function getGuidance(incident) {
@@ -140,21 +126,44 @@ export default function ResponderIncident() {
     return [];
   }
 
+  function getPriorityClass(priority) {
+    return `fm-detail-priority-${priority || 'medium'}`;
+  }
+
+  function getStatusClass(status) {
+    return `fm-detail-status-${status || 'reported'}`;
+  }
+
   if (loading) {
     return (
-      <main>
-        <h1>Loading Incident...</h1>
-        <p>Retrieving incident information.</p>
-      </main>
+      <AppShell role="Responder">
+        <div className="fm-page-loading">
+          <div className="fm-loading-spinner"></div>
+
+          <div>
+            <strong>Loading incident</strong>
+            <span>Retrieving emergency information...</span>
+          </div>
+        </div>
+      </AppShell>
     );
   }
 
   if (error && !incident) {
     return (
-      <main>
-        <h1>Responder Incident</h1>
-        <p style={{ color: '#dc2626' }}>{error}</p>
-      </main>
+      <AppShell role="Responder">
+        <div className="fm-detail-error">
+          <span>!</span>
+
+          <div>
+            <strong>Incident unavailable</strong>
+            <p>{error}</p>
+            <Link to="/responder">
+              ← Return to responder console
+            </Link>
+          </div>
+        </div>
+      </AppShell>
     );
   }
 
@@ -176,490 +185,679 @@ export default function ResponderIncident() {
 
   const priority = incident.priority || 'unknown';
 
+  const people =
+    incident.people?.reported ??
+    incident.briefing?.people ??
+    'Unknown';
+
+  const isResolved =
+    incident.status === INCIDENT_STATUSES.RESOLVED;
+
   return (
-    <main>
-      <h1>Incident {incident.id}</h1>
+    <AppShell role="Responder">
 
-      <div
-        style={{
-          maxWidth: '900px',
-          display: 'grid',
-          gap: '20px',
-        }}
-      >
+      {/* BACK + HEADER */}
+      <div className="fm-detail-back">
+        <Link to="/responder">
+          ← Back to incidents
+        </Link>
+      </div>
 
-        {/* Incident overview */}
-        <section
-          style={{
-            padding: '24px',
-            border: '1px solid #ccc',
-            borderRadius: '16px',
-          }}
-        >
-          <h2>🚨 Incident Overview</h2>
+      <section className="fm-detail-header">
 
-          <p>
-            <strong>Type:</strong>{' '}
+        <div className="fm-detail-title">
+
+          <div className="fm-detail-id">
+            INCIDENT / {incident.id}
+          </div>
+
+          <h1>
             {formatIncidentType(incident.incidentType)}
-          </p>
+          </h1>
 
-          <p>
-            <strong>Status:</strong>{' '}
-            {formatStatus(incident.status)}
-          </p>
-
-          <p>
-            <strong>Priority:</strong>{' '}
-            <span
-              style={{
-                ...getPriorityStyles(priority),
-                padding: '6px 12px',
-                borderRadius: '999px',
-                fontWeight: '800',
-                textTransform: 'uppercase',
-              }}
-            >
-              {priority}
+          <div className="fm-detail-subline">
+            <span>
+              Reported incident
             </span>
-          </p>
 
-          <p>
-            <strong>Location:</strong>{' '}
-            {incident.location?.address || 'Unknown'}
-          </p>
+            <span className="fm-detail-separator">
+              /
+            </span>
 
-          <p>
-            <strong>Language:</strong>{' '}
-            {incident.report?.language || 'Unknown'}
-          </p>
-        </section>
-
-        {/* Emergency Brief */}
-        <section
-          style={{
-            padding: '28px',
-            border: '2px solid #dc2626',
-            borderRadius: '18px',
-            background: '#fff7f7',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '16px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <p
-                style={{
-                  margin: 0,
-                  color: '#991b1b',
-                  fontSize: '13px',
-                  fontWeight: '800',
-                  letterSpacing: '1px',
-                }}
-              >
-                🚨 RESPONDER EMERGENCY BRIEF
-              </p>
-
-              <h2 style={{ margin: '8px 0 0' }}>
-                {formatIncidentType(incident.incidentType)}
-              </h2>
-            </div>
-
-            <span
-              style={{
-                ...getPriorityStyles(priority),
-                padding: '9px 16px',
-                borderRadius: '999px',
-                fontWeight: '800',
-                textTransform: 'uppercase',
-              }}
-            >
-              {priority} priority
+            <span>
+              {incident.report?.language || 'Unknown language'}
             </span>
           </div>
 
-          <hr style={{ margin: '22px 0' }} />
+        </div>
 
-          {/* What happened */}
+        <div className="fm-detail-header-status">
+
+          <span
+            className={`fm-detail-priority ${getPriorityClass(
+              priority
+            )}`}
+          >
+            {priority.toUpperCase()} PRIORITY
+          </span>
+
+          <span
+            className={`fm-detail-status ${getStatusClass(
+              incident.status
+            )}`}
+          >
+            {formatStatus(incident.status)}
+          </span>
+
+        </div>
+
+      </section>
+
+
+      {/* CRITICAL BRIEF */}
+      <section className="fm-critical-brief">
+
+        <div className="fm-critical-top">
+
+          <div className="fm-critical-label">
+            <span className="fm-critical-dot"></span>
+
+            RESPONDER BRIEF
+          </div>
+
+          <span className="fm-brief-source">
+            Based on reported information
+          </span>
+
+        </div>
+
+
+        <div className="fm-critical-summary">
+
           <div>
-            <h3>What happened</h3>
+            <span className="fm-mini-label">
+              WHAT HAPPENED
+            </span>
 
-            <p
-              style={{
-                fontSize: '17px',
-                lineHeight: '1.6',
-              }}
-            >
+            <p>
               {summary}
             </p>
-
-            <p
-              style={{
-                fontSize: '13px',
-                color: '#666',
-              }}
-            >
-              Source: information provided by the bystander.
-            </p>
           </div>
 
-          {/* Quick facts */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '12px',
-              marginTop: '20px',
-            }}
-          >
-            <div
-              style={{
-                padding: '16px',
-                background: '#ffffff',
-                border: '1px solid #ddd',
-                borderRadius: '12px',
-              }}
-            >
-              <strong>👥 People</strong>
+        </div>
 
-              <p style={{ marginBottom: 0 }}>
-                {incident.people?.reported
-                  ? `${incident.people.reported} reported`
-                  : 'Unknown'}
-              </p>
-            </div>
 
-            <div
-              style={{
-                padding: '16px',
-                background: '#ffffff',
-                border: '1px solid #ddd',
-                borderRadius: '12px',
-              }}
-            >
-              <strong>📍 Location</strong>
+        <div className="fm-fact-grid">
 
-              <p style={{ marginBottom: 0 }}>
-                {incident.location?.address || 'Unknown'}
-              </p>
-            </div>
+          <div className="fm-fact">
+            <span className="fm-mini-label">
+              PEOPLE
+            </span>
 
-            <div
-              style={{
-                padding: '16px',
-                background: '#ffffff',
-                border: '1px solid #ddd',
-                borderRadius: '12px',
-              }}
-            >
-              <strong>🌐 Language</strong>
+            <strong>
+              {people}
+            </strong>
 
-              <p style={{ marginBottom: 0 }}>
-                {incident.report?.language || 'Unknown'}
-              </p>
-            </div>
+            <span>
+              Reported at scene
+            </span>
           </div>
 
-          {/* Hazards */}
-          <div style={{ marginTop: '24px' }}>
-            <h3>⚠️ Hazards</h3>
+
+          <div className="fm-fact">
+            <span className="fm-mini-label">
+              LOCATION
+            </span>
+
+            <strong>
+              {incident.location?.address ||
+                'Location shared'}
+            </strong>
+
+            <span>
+              Location information
+            </span>
+          </div>
+
+
+          <div className="fm-fact">
+            <span className="fm-mini-label">
+              LANGUAGE
+            </span>
+
+            <strong>
+              {incident.report?.language ||
+                'Unknown'}
+            </strong>
+
+            <span>
+              Report language
+            </span>
+          </div>
+
+
+          <div className="fm-fact">
+            <span className="fm-mini-label">
+              INCIDENT ID
+            </span>
+
+            <strong>
+              {incident.id}
+            </strong>
+
+            <span>
+              Response record
+            </span>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* MAIN WORKSPACE */}
+      <div className="fm-detail-grid">
+
+        {/* LEFT COLUMN */}
+        <div className="fm-detail-left">
+
+          {/* HAZARDS */}
+          <section className="fm-detail-card">
+
+            <div className="fm-card-header">
+
+              <div>
+                <span className="fm-card-kicker">
+                  SCENE AWARENESS
+                </span>
+
+                <h2>
+                  Hazards
+                </h2>
+              </div>
+
+              <span className="fm-card-count">
+                {hazards.length}
+              </span>
+
+            </div>
 
             {hazards.length > 0 ? (
-              <ul
-                style={{
-                  lineHeight: '1.8',
-                }}
-              >
+
+              <div className="fm-hazard-list">
+
                 {hazards.map((hazard, index) => (
-                  <li key={index}>
-                    <strong>{hazard}</strong>
-                  </li>
+                  <div
+                    key={index}
+                    className="fm-hazard-item"
+                  >
+                    <span className="fm-hazard-icon">
+                      !
+                    </span>
+
+                    <span>
+                      {hazard}
+                    </span>
+                  </div>
                 ))}
-              </ul>
+
+              </div>
+
             ) : (
-              <p>No hazards reported.</p>
+
+              <div className="fm-no-data">
+                No hazards reported.
+              </div>
+
             )}
-          </div>
 
-          {/* Immediate guidance */}
-          <div style={{ marginTop: '24px' }}>
-            <h3>🛡️ Immediate Guidance</h3>
+          </section>
 
-            <ol
-              style={{
-                lineHeight: '1.8',
-                paddingLeft: '24px',
-              }}
-            >
+
+          {/* GUIDANCE */}
+          <section className="fm-detail-card">
+
+            <div className="fm-card-header">
+
+              <div>
+                <span className="fm-card-kicker">
+                  SAFETY GUIDANCE
+                </span>
+
+                <h2>
+                  Immediate actions
+                </h2>
+              </div>
+
+              <span className="fm-guidance-label">
+                Guidance only
+              </span>
+
+            </div>
+
+
+            <div className="fm-guidance-list">
+
               {guidance.map((item, index) => (
-                <li
+
+                <div
                   key={index}
-                  style={{
-                    marginBottom: '10px',
-                  }}
+                  className="fm-guidance-item"
                 >
-                  {item}
-                </li>
+
+                  <span className="fm-guidance-number">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+
+                  <p>
+                    {item}
+                  </p>
+
+                </div>
+
               ))}
-            </ol>
-          </div>
 
-          <div
-            style={{
-              marginTop: '20px',
-              padding: '12px 16px',
-              background: '#fff',
-              borderRadius: '10px',
-              fontSize: '13px',
-              color: '#555',
-            }}
-          >
-            <strong>Safety note:</strong> This information is based on
-            reported conditions and is not a medical diagnosis.
-          </div>
-        </section>
+            </div>
 
-        {/* Reported information */}
-        <section
-          style={{
-            padding: '24px',
-            border: '1px solid #ccc',
-            borderRadius: '16px',
-          }}
-        >
-          <h2>📝 Reported Information</h2>
 
-          <p>
-            {incident.report?.originalText ||
-              'No report available.'}
-          </p>
+            <div className="fm-safety-note">
+              <strong>Safety boundary</strong>
 
-          {incident.report?.translatedText &&
-            incident.report.translatedText !==
-              incident.report.originalText && (
-              <>
-                <h3>Responder Translation</h3>
+              <span>
+                This information is based on reported conditions
+                and is not a medical diagnosis.
+              </span>
+            </div>
 
-                <p>
-                  {incident.report.translatedText}
-                </p>
-              </>
-            )}
-        </section>
+          </section>
 
-        {/* Location */}
-        <section
-          style={{
-            padding: '24px',
-            border: '1px solid #ccc',
-            borderRadius: '16px',
-          }}
-        >
-          <h2>📍 Location</h2>
 
-          <p>
-            <strong>Address:</strong>{' '}
-            {incident.location?.address || 'Unknown'}
-          </p>
+          {/* REPORTED INFORMATION */}
+          <section className="fm-detail-card">
 
-          <p>
-            <strong>Latitude:</strong>{' '}
-            {incident.location?.latitude ?? 'Unknown'}
-          </p>
+            <div className="fm-card-header">
 
-          <p>
-            <strong>Longitude:</strong>{' '}
-            {incident.location?.longitude ?? 'Unknown'}
-          </p>
+              <div>
+                <span className="fm-card-kicker">
+                  SOURCE INFORMATION
+                </span>
 
-          {incident.location?.latitude &&
-            incident.location?.longitude && (
-              <a
-                href={`https://www.google.com/maps?q=${incident.location.latitude},${incident.location.longitude}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'inline-block',
-                  marginTop: '10px',
-                  padding: '10px 14px',
-                  background: '#2563eb',
-                  color: 'white',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  fontWeight: '600',
-                }}
-              >
-                Open Location in Maps
-              </a>
-            )}
-        </section>
+                <h2>
+                  Bystander report
+                </h2>
+              </div>
 
-        {/* People and hazards */}
-        <section
-          style={{
-            padding: '24px',
-            border: '1px solid #ccc',
-            borderRadius: '16px',
-          }}
-        >
-          <h2>👥 People & ⚠️ Hazards</h2>
+            </div>
 
-          <p>
-            <strong>People reported:</strong>{' '}
-            {incident.people?.reported ?? 'Unknown'}
-          </p>
 
-          <p>
-            <strong>Hazards:</strong>
-          </p>
+            <div className="fm-reported-box">
 
-          {hazards.length ? (
-            <ul>
-              {hazards.map((hazard, index) => (
-                <li key={index}>{hazard}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No hazards reported.</p>
-          )}
-        </section>
+              <span className="fm-mini-label">
+                ORIGINAL REPORT
+              </span>
 
-        {/* Responder actions */}
-        <section
-          style={{
-            padding: '24px',
-            border: '1px solid #ccc',
-            borderRadius: '16px',
-          }}
-        >
-          <h2>🚑 Responder Status</h2>
+              <p>
+                {incident.report?.originalText ||
+                  'No report available.'}
+              </p>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <button
-              type="button"
-              disabled={updating}
-              onClick={() =>
-                updateStatus(
-                  INCIDENT_STATUSES.ASSIGNED,
-                  'Responder assigned to incident'
-                )
-              }
-            >
-              Assign
-            </button>
+            </div>
 
-            <button
-              type="button"
-              disabled={updating}
-              onClick={() =>
-                updateStatus(
-                  INCIDENT_STATUSES.EN_ROUTE,
-                  'Responder is en route'
-                )
-              }
-            >
-              En Route
-            </button>
 
-            <button
-              type="button"
-              disabled={updating}
-              onClick={() =>
-                updateStatus(
-                  INCIDENT_STATUSES.ARRIVED,
-                  'Responder arrived at the scene'
-                )
-              }
-            >
-              Arrived
-            </button>
+            {incident.report?.translatedText &&
+              incident.report.translatedText !==
+                incident.report.originalText && (
 
-            <button
-              type="button"
-              disabled={updating}
-              onClick={() =>
-                updateStatus(
-                  INCIDENT_STATUSES.ASSISTING,
-                  'Responder is assisting at the scene'
-                )
-              }
-            >
-              Assisting
-            </button>
+                <div className="fm-reported-box translated">
 
-            <button
-              type="button"
-              disabled={updating}
-              onClick={() =>
-                updateStatus(
-                  INCIDENT_STATUSES.RESOLVED,
-                  'Incident resolved'
-                )
-              }
-            >
-              Resolved
-            </button>
-          </div>
+                  <span className="fm-mini-label">
+                    RESPONDER TRANSLATION
+                  </span>
 
-          {updating && (
-            <p style={{ marginTop: '12px' }}>
-              Updating incident status...
+                  <p>
+                    {incident.report.translatedText}
+                  </p>
+
+                </div>
+
+              )}
+
+          </section>
+
+        </div>
+
+
+        {/* RIGHT COLUMN */}
+        <aside className="fm-detail-right">
+
+          {/* STATUS CONTROL */}
+          <section className="fm-action-card">
+
+            <div className="fm-card-kicker">
+              RESPONSE CONTROL
+            </div>
+
+            <h2>
+              Update response
+            </h2>
+
+            <p className="fm-action-description">
+              Move the incident through the response lifecycle.
             </p>
-          )}
-        </section>
 
-        {/* Timeline */}
-        <section
-          style={{
-            padding: '24px',
-            border: '1px solid #ccc',
-            borderRadius: '16px',
-          }}
-        >
-          <h2>🕒 Timeline</h2>
 
-          {(incident.timeline || []).map((event) => (
+            <div className="fm-current-status">
+
+              <span>
+                CURRENT STATUS
+              </span>
+
+              <strong>
+                {formatStatus(incident.status)}
+              </strong>
+
+            </div>
+
+
+            <div className="fm-status-actions">
+
+              <button
+                type="button"
+                disabled={updating}
+                className={
+                  incident.status === INCIDENT_STATUSES.ASSIGNED
+                    ? 'selected'
+                    : ''
+                }
+                onClick={() =>
+                  updateStatus(
+                    INCIDENT_STATUSES.ASSIGNED,
+                    'Responder assigned to incident'
+                  )
+                }
+              >
+                <span>01</span>
+                Assign
+              </button>
+
+
+              <button
+                type="button"
+                disabled={updating}
+                className={
+                  incident.status === INCIDENT_STATUSES.EN_ROUTE
+                    ? 'selected'
+                    : ''
+                }
+                onClick={() =>
+                  updateStatus(
+                    INCIDENT_STATUSES.EN_ROUTE,
+                    'Responder is en route'
+                  )
+                }
+              >
+                <span>02</span>
+                En Route
+              </button>
+
+
+              <button
+                type="button"
+                disabled={updating}
+                className={
+                  incident.status === INCIDENT_STATUSES.ARRIVED
+                    ? 'selected'
+                    : ''
+                }
+                onClick={() =>
+                  updateStatus(
+                    INCIDENT_STATUSES.ARRIVED,
+                    'Responder arrived at the scene'
+                  )
+                }
+              >
+                <span>03</span>
+                Arrived
+              </button>
+
+
+              <button
+                type="button"
+                disabled={updating}
+                className={
+                  incident.status === INCIDENT_STATUSES.ASSISTING
+                    ? 'selected'
+                    : ''
+                }
+                onClick={() =>
+                  updateStatus(
+                    INCIDENT_STATUSES.ASSISTING,
+                    'Responder is assisting at the scene'
+                  )
+                }
+              >
+                <span>04</span>
+                Assisting
+              </button>
+
+
+              <button
+                type="button"
+                disabled={updating}
+                className={
+                  incident.status === INCIDENT_STATUSES.RESOLVED
+                    ? 'selected resolved'
+                    : ''
+                }
+                onClick={() =>
+                  updateStatus(
+                    INCIDENT_STATUSES.RESOLVED,
+                    'Incident resolved'
+                  )
+                }
+              >
+                <span>05</span>
+                Resolved
+              </button>
+
+            </div>
+
+
+            {updating && (
+              <div className="fm-update-state">
+                Updating response status...
+              </div>
+            )}
+
+          </section>
+
+
+          {/* LOCATION */}
+          <section className="fm-detail-card compact">
+
+            <div className="fm-card-header">
+
+              <div>
+                <span className="fm-card-kicker">
+                  SCENE LOCATION
+                </span>
+
+                <h2>
+                  Location
+                </h2>
+              </div>
+
+              <span className="fm-location-pin">
+                +
+              </span>
+
+            </div>
+
+
+            <div className="fm-location-value">
+
+              <strong>
+                {incident.location?.address ||
+                  'Location shared'}
+              </strong>
+
+              <span>
+                {incident.location?.latitude ??
+                  'Unknown'}
+                {' / '}
+                {incident.location?.longitude ??
+                  'Unknown'}
+              </span>
+
+            </div>
+
+
+            {incident.location?.latitude &&
+              incident.location?.longitude && (
+
+                <a
+                  href={`https://www.google.com/maps?q=${incident.location.latitude},${incident.location.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="fm-map-button"
+                >
+                  Open in Maps
+                  <span>↗</span>
+                </a>
+
+              )}
+
+          </section>
+
+
+          {/* PEOPLE */}
+          <section className="fm-detail-card compact">
+
+            <div className="fm-card-header">
+
+              <div>
+                <span className="fm-card-kicker">
+                  PEOPLE
+                </span>
+
+                <h2>
+                  Scene count
+                </h2>
+              </div>
+
+            </div>
+
+            <div className="fm-people-number">
+              {people}
+            </div>
+
+            <span className="fm-people-note">
+              People reported by bystander
+            </span>
+
+          </section>
+
+        </aside>
+
+      </div>
+
+
+      {/* TIMELINE */}
+      <section className="fm-timeline-card">
+
+        <div className="fm-card-header">
+
+          <div>
+            <span className="fm-card-kicker">
+              INCIDENT RECORD
+            </span>
+
+            <h2>
+              Response timeline
+            </h2>
+          </div>
+
+          <span className="fm-card-count">
+            {(incident.timeline || []).length}
+          </span>
+
+        </div>
+
+
+        <div className="fm-timeline">
+
+          {(incident.timeline || []).map((event, index) => (
+
             <div
               key={event.id}
-              style={{
-                padding: '12px 0',
-                borderBottom: '1px solid #eee',
-              }}
+              className="fm-timeline-event"
             >
-              <strong>{event.message}</strong>
 
-              <br />
+              <div className="fm-timeline-marker">
 
-              <small>
-                {new Date(event.timestamp).toLocaleString()}
-              </small>
+                <span></span>
+
+              </div>
+
+              <div className="fm-timeline-content">
+
+                <div className="fm-timeline-event-top">
+
+                  <strong>
+                    {event.message}
+                  </strong>
+
+                  {index ===
+                    (incident.timeline || []).length - 1 && (
+                    <span className="fm-latest">
+                      LATEST
+                    </span>
+                  )}
+
+                </div>
+
+                <span>
+                  {new Date(
+                    event.timestamp
+                  ).toLocaleString()}
+                </span>
+
+              </div>
+
             </div>
-          ))}
-        </section>
 
-        {error && (
-          <p
-            style={{
-              color: '#dc2626',
-              fontWeight: '600',
-            }}
-          >
-            {error}
-          </p>
-        )}
-      </div>
-    </main>
+          ))}
+
+        </div>
+
+      </section>
+
+
+      {isResolved && (
+        <div className="fm-resolved-banner">
+          <span>✓</span>
+
+          <div>
+            <strong>
+              Incident resolved
+            </strong>
+
+            <p>
+              This incident has reached the resolved state
+              and remains available in the response record.
+            </p>
+          </div>
+        </div>
+      )}
+
+
+      {error && incident && (
+        <div className="fm-console-error">
+          <strong>Update failed</strong>
+          <span>{error}</span>
+        </div>
+      )}
+
+    </AppShell>
   );
 }
