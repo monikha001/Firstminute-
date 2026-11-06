@@ -16,19 +16,6 @@ FirstMinutes provides three role-specific workspaces backed by a shared Firestor
 1. Bystander: selects an incident type, shares available location information, and submits a text or browser speech-to-text report.
 2. Responder: reviews the incident queue and structured briefing, then records response-status updates.
 3. Coordinator: monitors active incidents, priority indicators, response stages, and the latest recorded timeline event.
-The product flow is:
-Bystander report
-      │
-      ▼
-Shared incident record in Cloud Firestore
-      │
-      ├──────────────► Responder Console
-      │                   │
-      │                   └── Status updates and timeline events
-      │
-      └──────────────► Coordinator Operations Center
-                          │
-                          └── Monitors the same incident record
 The central product principle is: one incident, three connected roles.
 Workspaces and implemented functionality
 1. Bystander reporting
@@ -169,6 +156,6 @@ These are roadmap items and should not be considered implemented unless a workin
 Project status
 FirstMinutes currently demonstrates a connected prototype workflow across bystander reporting, responder incident handling, and coordinator monitoring using shared Firestore incident records.
 
-Live demo: https://firstminute-rho.vercel.app/
+Live demo: https://firstminute-ohd105kth-eclipse-56ce.vercel.app
 Source code: https://github.com/monikha001/Firstminute-
 Built as a hackathon prototype to explore how structured incident reporting and shared response visibility can support the critical first minutes of an emergency
