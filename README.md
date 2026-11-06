@@ -3,7 +3,7 @@ Help starts in the first minutes.
 
 FirstMinutes is an emergency-response coordination prototype that connects the person reporting an incident, the responder reviewing it, and the coordinator monitoring its progress through one shared incident record.
 Resource	Link
-Live application	https://firstminute-rho.vercel.app/
+Live application	https://firstminute-ohd105kth-eclipse-56ce.vercel.app
 GitHub repository	https://github.com/monikha001/Firstminute-
 
 
